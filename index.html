@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Planning PASS</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Planning PASS">
+<meta name="theme-color" content="#EEF3F0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #EEF3F0; --paper: #FFFFFF; --ink: #1D2B27; --ink-soft: #61756E; --ink-faint: #93A39C;
+    --line: #DCE6E0; --line-strong: #C3D1C9; --primary: #33655A; --primary-soft: #DCE9E4;
+    --status-a-revoir: #BD5137; --status-en-cours: #C98A2E; --status-maitrise: #4C8A5B;
+    --radius-card: 16px; --radius-block: 8px;
+    --font-display: 'Fraunces', serif; --font-body: 'Inter', -apple-system, sans-serif;
+  }
+  body.dark{
+    --bg: #14201C; --paper: #1C2A25; --ink: #E9F1EC; --ink-soft: #9FB3AB; --ink-faint: #6E8079;
+    --line: #2A3A34; --line-strong: #3C4F47; --primary: #5FA08E; --primary-soft: #24413A;
+    --status-a-revoir: #E07659; --status-en-cours: #E3A94F; --status-maitrise: #6FBF80;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0; padding:0;}
+  body{ font-family: var(--font-body); color: var(--ink); background: var(--bg); min-height: 100vh; transition: background .2s, color .2s; }
+  .app{ max-width: 520px; margin: 0 auto; padding: 18px 14px 96px; }
+
+  .header-row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:14px; }
+  header h1{ font-family: var(--font-display); font-weight: 600; font-size: 25px; margin: 0 0 3px; letter-spacing: -0.01em; }
+  header p{ margin:0; color: var(--ink-soft); font-size: 13px; }
+
+  .icon-btn{ width:40px; height:40px; border-radius:10px; border:1px solid var(--line); background: var(--paper); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:16px; color: var(--ink-soft); flex:0 0 auto; }
+  .theme-btn{ border-radius:50%; font-size:17px; }
+
+  .toolbar{ display:flex; align-items:stretch; gap:8px; margin-bottom:14px; }
+  .countdown-chip{ flex:1; background: var(--paper); border:1px solid var(--line); border-radius:12px; padding:9px 13px; cursor:pointer; }
+  .countdown-chip .cd-label{ font-size:10.5px; color: var(--ink-soft); font-weight:700; text-transform:uppercase; letter-spacing:.02em; }
+  .countdown-chip .cd-value{ font-family: var(--font-display); font-weight:600; font-size:16.5px; color: var(--ink); margin-top:1px; }
+
+  .tabs{ display:flex; background: var(--paper); border-radius: 999px; padding: 4px; border: 1px solid var(--line); margin: 0 0 16px; }
+  .tab-btn{ flex:1; border:none; background: transparent; font-family: var(--font-body); font-weight: 600; font-size: 12.5px; color: var(--ink-soft); padding: 9px 0; border-radius: 999px; cursor:pointer; }
+  .tab-btn.active{ background: var(--primary); color:#fff; }
+
+  .nav-row{ display:flex; align-items:center; justify-content:space-between; margin: 0 0 10px 2px; }
+  .nav-row .nav-label{ font-size:13px; font-weight:700; color: var(--ink); }
+  .nav-arrows{ display:flex; gap:6px; }
+  .nav-arrow{ width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background: var(--paper); color: var(--ink-soft); font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+
+  /* ---------- SEMAINE ---------- */
+  .week-stats{ font-size: 12.5px; color: var(--ink-soft); margin: 0 0 10px 2px; }
+  .week-stats strong{ color: var(--ink); font-weight:700; }
+
+  .grid-shell{ background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-card); overflow: hidden; }
+  .grid-outer{ overflow: visible; }
+  .week-grid{ display: grid; grid-template-columns: 26px repeat(7, 44px); }
+  .corner{ position: sticky; top:0; left:0; z-index: 4; background: var(--paper); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .day-head{ position: sticky; top:0; z-index: 3; background: var(--paper); border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); padding: 6px 0 5px; text-align:center; }
+  .day-head.today{ background: var(--primary-soft); }
+  .day-head .dname{ font-size: 9.5px; font-weight: 700; color: var(--ink); }
+  .day-head .ddate{ font-size: 9px; color: var(--ink-faint); margin-top: 1px; }
+  .hour-axis{ position: sticky; left:0; z-index: 2; background: var(--paper); border-right: 1px solid var(--line); }
+  .hour-tick{ position:absolute; left:0; right:3px; text-align:right; font-size: 8.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; transform: translateY(-5px); }
+  .day-col{ position: relative; border-right: 1px solid var(--line);
+    background-image: repeating-linear-gradient(to bottom, var(--line) 0, var(--line) 1px, transparent 1px, transparent 34px); }
+  .day-col:last-child{ border-right:none; }
+
+  .block{ position:absolute; left: 2px; right: 2px; border-radius: 5px; padding: 2px 3px; color:#fff; font-size: 8px; line-height: 1.15; overflow:hidden; cursor: grab; touch-action: none; box-shadow: 0 1px 2px rgba(0,0,0,.1); border-left: 2px solid rgba(0,0,0,.2); }
+  .block.dragging{ cursor:grabbing; z-index: 10; box-shadow: 0 5px 14px rgba(0,0,0,.25); opacity:.95; }
+  .block .b-title{ font-weight:700; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .block .b-time{ display:block; opacity:.85; font-size: 7px; margin-top:1px; }
+
+  .add-btn{ position: fixed; left:50%; bottom:22px; transform: translateX(-50%); background: var(--ink); color: var(--bg); border:none; font-family: var(--font-body); font-weight:700; font-size:14px; padding: 13px 24px; border-radius: 999px; box-shadow: 0 6px 18px rgba(0,0,0,.22); cursor:pointer; max-width: 520px; width: calc(100% - 60px); }
+  .scroll-hint{ text-align:center; color: var(--ink-faint); font-size: 11.5px; margin-top:9px; }
+
+  /* ---------- MOIS ---------- */
+  .month-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap:4px; background: var(--paper); border:1px solid var(--line); border-radius: var(--radius-card); padding: 10px; }
+  .month-dayname{ text-align:center; font-size:10px; font-weight:700; color: var(--ink-faint); padding-bottom:6px; }
+  .month-cell{ aspect-ratio: 1/1; border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; padding-top:5px; cursor:pointer; position:relative; }
+  .month-cell.out{ opacity:.32; }
+  .month-cell.today{ background: var(--primary-soft); }
+  .month-cell .mnum{ font-size:11.5px; font-weight:600; color: var(--ink); }
+  .month-dots{ display:flex; gap:2px; margin-top:4px; flex-wrap:wrap; justify-content:center; max-width: 30px; }
+  .month-dot{ width:5px; height:5px; border-radius:50%; }
+
+  /* ---------- MATIERES ---------- */
+  .chart-card{ background: var(--paper); border:1px solid var(--line); border-radius: var(--radius-card); padding: 14px; margin-bottom: 14px; }
+  .chart-title{ font-size: 12px; font-weight:700; color: var(--ink-soft); margin: 0 0 12px; }
+  .chart-row{ display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+  .chart-row:last-child{ margin-bottom:0; }
+  .chart-label{ width: 96px; font-size: 11.5px; color: var(--ink); flex:0 0 auto; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chart-bar-track{ flex:1; background: var(--line); border-radius:5px; height:9px; overflow:hidden; }
+  .chart-bar-fill{ height:100%; border-radius:5px; }
+  .chart-value{ width: 36px; text-align:right; font-size: 11px; color: var(--ink-soft); flex:0 0 auto; }
+
+  .subject-add-btn{ display:flex; align-items:center; gap:8px; width:100%; background: var(--paper); border: 1.5px dashed var(--line-strong); color: var(--primary); font-family: var(--font-body); font-weight:700; font-size: 13.5px; padding: 12px 14px; border-radius: 12px; cursor:pointer; margin-bottom: 14px; }
+  .subject-card{ background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius-card); margin-bottom: 12px; overflow:hidden; }
+  .subject-top{ display:flex; align-items:center; gap: 10px; padding: 13px 14px; cursor:pointer; }
+  .subject-dot{ width: 13px; height:13px; border-radius:50%; flex:0 0 auto; }
+  .subject-name{ font-weight:700; font-size:14.5px; flex:1; }
+  .subject-pct{ font-size:12px; color: var(--ink-soft); font-weight:600; }
+  .chevron{ color: var(--ink-faint); font-size:11px; transition: transform .15s; }
+  .subject-card.open .chevron{ transform: rotate(90deg); }
+  .progress-track{ height: 4px; background: var(--line); margin: 0 14px 12px; border-radius: 4px; overflow:hidden; }
+  .progress-fill{ height:100%; border-radius:4px; }
+  .subject-body{ display:none; padding: 0 14px 14px; }
+  .subject-card.open .subject-body{ display:block; }
+
+  .course-row{ display:flex; align-items:center; gap:8px; padding: 8px 0; border-top: 1px solid var(--line); }
+  .course-title{ flex:1; font-size: 13.5px; }
+  .status-pill{ border:none; border-radius:999px; padding: 5px 10px; font-size: 10.5px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; }
+  .course-del{ border:none; background:none; color: var(--ink-faint); font-size: 15px; cursor:pointer; padding: 2px 4px; }
+  .add-course-row{ display:flex; gap: 8px; margin-top: 10px; }
+  .add-course-row input{ flex:1; border:1px solid var(--line-strong); border-radius:9px; padding: 9px 10px; font-size: 13.5px; font-family: var(--font-body); background:var(--paper); color:var(--ink); }
+  .add-course-row button{ border:none; background: var(--primary); color:#fff; border-radius: 9px; padding: 0 14px; font-weight:700; font-size:13px; cursor:pointer; }
+  .subject-actions{ display:flex; gap: 14px; margin-top: 12px; padding-top:10px; border-top: 1px solid var(--line); }
+  .subject-actions button{ background:none; border:none; font-size:12px; font-weight:700; cursor:pointer; padding:0; }
+  .rename-btn{ color: var(--ink-soft); }
+  .del-subject-btn{ color: var(--status-a-revoir); }
+  .empty-note{ color: var(--ink-faint); font-size: 12.5px; padding: 6px 0 0; }
+
+  /* ---------- MODAL ---------- */
+  .overlay{ position: fixed; inset:0; background: rgba(10,16,14,.5); display:none; align-items:flex-end; justify-content:center; z-index: 50; }
+  .overlay.open{ display:flex; }
+  .modal{ background: var(--paper); width:100%; max-width: 520px; border-radius: 18px 18px 0 0; padding: 20px 18px 26px; max-height: 88vh; overflow-y:auto; }
+  .modal h2{ font-family: var(--font-display); font-weight:600; font-size: 19px; margin: 0 0 16px; color:var(--ink); }
+  .field{ margin-bottom: 14px; }
+  .field label{ display:block; font-size:12px; font-weight:700; color: var(--ink-soft); margin-bottom:6px; }
+  .field input[type="text"], .field select{ width:100%; border:1px solid var(--line-strong); border-radius:9px; padding: 11px 12px; font-size:15px; font-family: var(--font-body); background:var(--paper); color: var(--ink); }
+  .row2{ display:flex; gap:10px; }
+  .row2 .field{ flex:1; }
+  .field input[type="time"], .field input[type="date"]{ width:100%; border:1px solid var(--line-strong); border-radius:9px; padding:10px 12px; font-size:15px; font-family: var(--font-body); background:var(--paper); color: var(--ink); }
+  .chip-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .chip{ display:flex; align-items:center; gap:6px; border: 1.5px solid var(--line-strong); padding: 7px 11px; border-radius:999px; font-size:12px; font-weight:700; color: var(--ink-soft); cursor:pointer; background:var(--paper); }
+  .chip .swatch{ width:10px; height:10px; border-radius:50%; }
+  .chip.selected{ border-color: var(--ink); color: var(--ink); background: var(--primary-soft); }
+  .color-swatch{ width: 26px; height:26px; border-radius:50%; cursor:pointer; border: 2px solid transparent; }
+  .color-swatch.selected{ border-color: var(--ink); }
+  .modal-actions{ display:flex; gap:10px; margin-top:18px; }
+  .btn{ flex:1; border:none; border-radius:10px; padding:13px; font-family: var(--font-body); font-weight:700; font-size:14.5px; cursor:pointer; }
+  .btn-save{ background: var(--ink); color: var(--bg); }
+  .btn-cancel{ background: var(--line); color: var(--ink-soft); }
+  .btn-delete{ background:none; border:none; color: var(--status-a-revoir); font-family: var(--font-body); font-weight:700; font-size:13px; padding:8px 0 0; cursor:pointer; width:100%; text-align:center; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header-row">
+    <header>
+      <h1>Mon planning PASS</h1>
+      <p>Ta semaine et tes matières, au même endroit.</p>
+    </header>
+    <button class="icon-btn theme-btn" id="themeBtn">☾</button>
+  </div>
+
+  <div class="toolbar">
+    <div class="countdown-chip" id="countdownChip"></div>
+    <button class="icon-btn" id="exportBtn" title="Exporter mes données">⬇</button>
+    <button class="icon-btn" id="importBtn" title="Importer mes données">⬆</button>
+    <input type="file" id="importInput" accept="application/json" style="display:none;">
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabWeekBtn">Semaine</button>
+    <button class="tab-btn" id="tabMonthBtn">Mois</button>
+    <button class="tab-btn" id="tabSubjBtn">Matières</button>
+  </div>
+
+  <div id="weekView">
+    <div class="nav-row">
+      <span class="nav-label" id="weekLabel"></span>
+      <div class="nav-arrows">
+        <button class="nav-arrow" id="weekPrevBtn">‹</button>
+        <button class="nav-arrow" id="weekTodayBtn">•</button>
+        <button class="nav-arrow" id="weekNextBtn">›</button>
+      </div>
+    </div>
+    <p class="week-stats" id="weekStats"></p>
+    <div class="grid-shell">
+      <div class="grid-outer" id="gridOuter">
+        <div class="week-grid" id="weekGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="monthView" style="display:none;">
+    <div class="nav-row">
+      <span class="nav-label" id="monthLabel"></span>
+      <div class="nav-arrows">
+        <button class="nav-arrow" id="monthPrevBtn">‹</button>
+        <button class="nav-arrow" id="monthNextBtn">›</button>
+      </div>
+    </div>
+    <div class="month-grid" id="monthGrid"></div>
+    <p class="scroll-hint">Tape un jour pour l'ouvrir dans la vue Semaine</p>
+  </div>
+
+  <div id="subjView" style="display:none;">
+    <div class="chart-card" id="subjectChart"></div>
+    <button class="subject-add-btn" id="addSubjectBtn">+ Créer une matière</button>
+    <div id="subjectList"></div>
+  </div>
+</div>
+
+<button class="add-btn" id="addBtn">+ Ajouter un bloc</button>
+
+<!-- Modal bloc -->
+<div class="overlay" id="blockOverlay">
+  <div class="modal">
+    <h2 id="blockModalTitle">Nouveau bloc</h2>
+    <div class="field"><label>Intitulé (facultatif)</label><input type="text" id="fLabel" placeholder="Laisse vide pour reprendre le nom de la matière"></div>
+    <div class="field"><label>Jour</label><select id="fDay"></select></div>
+    <div class="row2">
+      <div class="field"><label>Début</label><input type="time" id="fStart" step="300"></div>
+      <div class="field"><label>Fin</label><input type="time" id="fEnd" step="300"></div>
+    </div>
+    <div class="field"><label>Matière</label><div class="chip-row" id="blockSubjectChips"></div></div>
+    <div class="field">
+      <label>Répétition</label>
+      <div class="chip-row"><div class="chip" id="recurringChip"><span>↻</span> Se répète chaque semaine</div></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="blockCancelBtn">Annuler</button>
+      <button class="btn btn-save" id="blockSaveBtn">Enregistrer</button>
+    </div>
+    <button class="btn-delete" id="blockDeleteBtn" style="display:none;">Supprimer ce bloc</button>
+    <button class="btn-delete" id="blockDeleteOccurrenceBtn" style="display:none;">Supprimer cette semaine seulement</button>
+    <button class="btn-delete" id="blockDeleteSeriesBtn" style="display:none;">Supprimer toute la série</button>
+  </div>
+</div>
+
+<!-- Modal matiere -->
+<div class="overlay" id="subjOverlay">
+  <div class="modal">
+    <h2 id="subjModalTitle">Nouvelle matière</h2>
+    <div class="field"><label>Nom</label><input type="text" id="sName" placeholder="Ex : Anatomie"></div>
+    <div class="field"><label>Couleur</label><div class="chip-row" id="colorSwatches"></div></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="subjCancelBtn">Annuler</button>
+      <button class="btn btn-save" id="subjSaveBtn">Enregistrer</button>
+    </div>
+    <button class="btn-delete" id="subjDeleteBtn" style="display:none;">Supprimer cette matière</button>
+  </div>
+</div>
+
+<!-- Modal countdown -->
+<div class="overlay" id="cdOverlay">
+  <div class="modal">
+    <h2>Échéance à suivre</h2>
+    <div class="field"><label>Nom</label><input type="text" id="cdLabel" placeholder="Ex : Concours PASS"></div>
+    <div class="field"><label>Date</label><input type="date" id="cdDate"></div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="cdCancelBtn">Annuler</button>
+      <button class="btn btn-save" id="cdSaveBtn">Enregistrer</button>
+    </div>
+    <button class="btn-delete" id="cdDeleteBtn" style="display:none;">Supprimer l'échéance</button>
+  </div>
+</div>
+
+<script>
+const DAYS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+const START_HOUR = 7, END_HOUR = 23;
+const PX_PER_MIN = 34/60;
+const STORAGE_KEY = 'pass-planner-v4';
+const COLOR_PALETTE = ['#33655A','#7A5980','#C98A2E','#3F6FA6','#B14A34','#7C9A4B','#A24B6F','#55707A'];
+const STATUS_ORDER = ['a_revoir','en_cours','maitrise'];
+const STATUS_LABEL = { a_revoir:'À revoir', en_cours:'En cours', maitrise:'Maîtrisé' };
+const STATUS_COLOR = { a_revoir:'var(--status-a-revoir)', en_cours:'var(--status-en-cours)', maitrise:'var(--status-maitrise)' };
+
+let state = { subjects: [], courses: [], blocks: [], countdown: null, settings: { dark:false } };
+
+function defaultSubjects(){
+  return [
+    { id:'s1', name:'Chimie / Biochimie', color:'#33655A' },
+    { id:'s2', name:'Biologie moléculaire', color:'#7A5980' },
+    { id:'s3', name:'Cytologie', color:'#C98A2E' },
+    { id:'s4', name:'Physiologie', color:'#3F6FA6' },
+    { id:'s5', name:'Pharmacologie', color:'#B14A34' },
+    { id:'s6', name:'Sciences sociales', color:'#7C9A4B' },
+    { id:'s0', name:'Perso', color:'#55707A' },
+  ];
+}
+
+/* ---------------- DATES ---------------- */
+function toISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function addDays(d, n){ const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+function mondayOf(d){ const r = new Date(d); const wd = (r.getDay()+6)%7; r.setDate(r.getDate()-wd); r.setHours(0,0,0,0); return r; }
+function sameDate(a,b){ return toISO(a)===toISO(b); }
+
+let currentWeekStart = mondayOf(new Date());
+let currentMonthDate = new Date();
+
+let openSubjectId = null;
+let editingBlockId = null, blockDraftSubjectId = null, blockDraftRecurring = false, editingOccurrenceDateISO = null;
+let editingSubjectId = null, subjectDraftColor = null;
+
+const el = id => document.getElementById(id);
+const weekGrid = el('weekGrid');
+const subjectList = el('subjectList');
+const weekStats = el('weekStats');
+
+function uid(prefix){ return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function minToLabel(m){ const h=Math.floor(m/60), mm=m%60; return String(h).padStart(2,'0')+':'+String(mm).padStart(2,'0'); }
+function timeToMin(t){ const [h,m]=t.split(':').map(Number); return h*60+m; }
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function subjectById(id){ return state.subjects.find(s=>s.id===id); }
+
+/* ---------------- LOAD / MIGRATION ---------------- */
+async function loadState(){
+  try{
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      state.subjects = parsed.subjects || defaultSubjects();
+      state.courses = parsed.courses || [];
+      state.blocks = Array.isArray(parsed.blocks) ? parsed.blocks : [];
+      state.countdown = parsed.countdown || null;
+      state.settings = parsed.settings || { dark:false };
+    } else {
+      // essai de migration depuis une ancienne sauvegarde (v2/v3)
+      const old = await tryLoadOld();
+      if(old){
+        state.subjects = old.subjects || defaultSubjects();
+        state.courses = old.courses || [];
+        state.blocks = migrateOldBlocks(old.blocks);
+        state.countdown = old.countdown || null;
+        state.settings = old.settings || { dark:false };
+        await saveState();
+      } else {
+        state.subjects = defaultSubjects();
+      }
+    }
+  }catch(e){
+    state.subjects = defaultSubjects();
+  }
+  applyTheme();
+  renderAll();
+  renderCountdown();
+}
+async function tryLoadOld(){
+  for(const key of ['pass-planner-v3','pass-planner-v2','weekly-schedule-v1']){
+    try{
+      const res = await window.storage.get(key, false);
+      if(res && res.value) return JSON.parse(res.value);
+    }catch(e){ /* clé absente */ }
+  }
+  return null;
+}
+function migrateOldBlocks(oldBlocks){
+  if(!oldBlocks || Array.isArray(oldBlocks)) return oldBlocks || [];
+  const flat = [];
+  DAYS.forEach((day, idx)=>{
+    (oldBlocks[day]||[]).forEach(b=>{
+      flat.push({ id:b.id||uid('b'), label:b.label||'', start:b.start, end:b.end,
+        subjectId: b.subjectId || null, weekday: idx, recurring:true, exceptions: [] });
+    });
+  });
+  return flat;
+}
+async function saveState(){
+  try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); }catch(e){ /* silencieux */ }
+}
+
+function renderAll(){ renderWeek(); renderMonth(); renderSubjects(); renderChart(); }
+
+/* ---------------- THEME ---------------- */
+function applyTheme(){
+  const dark = !!(state.settings && state.settings.dark);
+  document.body.classList.toggle('dark', dark);
+  el('themeBtn').textContent = dark ? '☀' : '☾';
+}
+el('themeBtn').onclick = ()=>{
+  state.settings = state.settings || {};
+  state.settings.dark = !state.settings.dark;
+  applyTheme(); saveState();
+};
+
+/* ---------------- COUNTDOWN ---------------- */
+function renderCountdown(){
+  const chip = el('countdownChip');
+  if(!state.countdown){
+    chip.innerHTML = `<div class="cd-label">Échéance</div><div class="cd-value">+ Ajouter un objectif</div>`;
+    return;
+  }
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(state.countdown.date+'T00:00:00');
+  const diffDays = Math.round((target-today)/86400000);
+  let valueText;
+  if(diffDays>0) valueText = 'J-'+diffDays;
+  else if(diffDays===0) valueText = "Aujourd'hui";
+  else valueText = 'Passé (+'+Math.abs(diffDays)+'j)';
+  chip.innerHTML = `<div class="cd-label">${escapeHtml(state.countdown.label)}</div><div class="cd-value">${valueText}</div>`;
+}
+el('countdownChip').onclick = ()=>{
+  if(state.countdown){
+    el('cdLabel').value = state.countdown.label;
+    el('cdDate').value = state.countdown.date;
+    el('cdDeleteBtn').style.display = 'block';
+  } else {
+    el('cdLabel').value = '';
+    el('cdDate').value = '';
+    el('cdDeleteBtn').style.display = 'none';
+  }
+  el('cdOverlay').classList.add('open');
+};
+el('cdCancelBtn').onclick = ()=> el('cdOverlay').classList.remove('open');
+el('cdOverlay').addEventListener('click', e=>{ if(e.target===el('cdOverlay')) el('cdOverlay').classList.remove('open'); });
+el('cdSaveBtn').onclick = ()=>{
+  const label = el('cdLabel').value.trim();
+  const date = el('cdDate').value;
+  if(!label || !date) return;
+  state.countdown = { label, date };
+  saveState(); renderCountdown();
+  el('cdOverlay').classList.remove('open');
+};
+el('cdDeleteBtn').onclick = ()=>{
+  state.countdown = null;
+  saveState(); renderCountdown();
+  el('cdOverlay').classList.remove('open');
+};
+
+/* ---------------- EXPORT / IMPORT ---------------- */
+el('exportBtn').onclick = ()=>{
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'planning-pass-sauvegarde.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+el('importBtn').onclick = ()=> el('importInput').click();
+el('importInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev)=>{
+    try{
+      const parsed = JSON.parse(ev.target.result);
+      state.subjects = parsed.subjects || state.subjects;
+      state.courses = parsed.courses || state.courses;
+      state.blocks = Array.isArray(parsed.blocks) ? parsed.blocks : state.blocks;
+      state.countdown = parsed.countdown !== undefined ? parsed.countdown : state.countdown;
+      state.settings = parsed.settings || state.settings;
+      saveState(); applyTheme(); renderAll(); renderCountdown();
+    }catch(err){ /* fichier invalide : on ignore silencieusement */ }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* ---------------- BLOCS POUR UNE SEMAINE ---------------- */
+function getBlocksForWeek(weekStart){
+  const weekStartISO = toISO(weekStart);
+  const byDay = [[],[],[],[],[],[],[]];
+  state.blocks.forEach(b=>{
+    if(b.recurring){
+      const dateISO = toISO(addDays(weekStart, b.weekday));
+      if(!(b.exceptions||[]).includes(dateISO)) byDay[b.weekday].push(b);
+    } else if(b.weekStart === weekStartISO){
+      byDay[b.weekday].push(b);
+    }
+  });
+  return byDay;
+}
+function getBlocksForDate(date){
+  const weekday = (date.getDay()+6)%7;
+  const dateISO = toISO(date);
+  const weekStartISO = toISO(mondayOf(date));
+  return state.blocks.filter(b=>{
+    if(b.weekday!==weekday) return false;
+    if(b.recurring) return !(b.exceptions||[]).includes(dateISO);
+    return b.weekStart===weekStartISO;
+  });
+}
+
+/* ---------------- SEMAINE ---------------- */
+function formatWeekLabel(weekStart){
+  const end = addDays(weekStart,6);
+  const s = weekStart.toLocaleDateString('fr-FR', {day:'numeric', month:'short'});
+  const eOpt = weekStart.getFullYear()===end.getFullYear() ? {day:'numeric', month:'short', year:'numeric'} : {day:'numeric', month:'short', year:'numeric'};
+  const e = end.toLocaleDateString('fr-FR', eOpt);
+  return s + ' → ' + e;
+}
+function renderWeek(){
+  el('weekLabel').textContent = formatWeekLabel(currentWeekStart);
+  weekGrid.innerHTML = '';
+  const totalMin = (END_HOUR-START_HOUR)*60;
+  const totalPx = totalMin * PX_PER_MIN;
+  const todayISO = toISO(new Date());
+
+  const corner = document.createElement('div');
+  corner.className = 'corner';
+  weekGrid.appendChild(corner);
+
+  const byDay = getBlocksForWeek(currentWeekStart);
+
+  DAYS.forEach((day, idx) => {
+    const date = addDays(currentWeekStart, idx);
+    const head = document.createElement('div');
+    head.className = 'day-head' + (toISO(date)===todayISO ? ' today' : '');
+    head.innerHTML = `<div class="dname">${day.slice(0,3)}</div><div class="ddate">${date.getDate()}</div>`;
+    weekGrid.appendChild(head);
+  });
+
+  const axis = document.createElement('div');
+  axis.className = 'hour-axis';
+  axis.style.height = totalPx + 'px';
+  for(let h=START_HOUR; h<END_HOUR; h++){
+    const tick = document.createElement('div');
+    tick.className = 'hour-tick';
+    tick.style.top = ((h-START_HOUR)*60*PX_PER_MIN) + 'px';
+    tick.textContent = String(h).padStart(2,'0')+'h';
+    axis.appendChild(tick);
+  }
+  weekGrid.appendChild(axis);
+
+  DAYS.forEach((day, idx) => {
+    const col = document.createElement('div');
+    col.className = 'day-col';
+    col.style.height = totalPx + 'px';
+    byDay[idx].forEach(b => renderBlock(col, idx, b));
+    weekGrid.appendChild(col);
+  });
+
+  let totalHours = 0;
+  byDay.forEach(list => list.forEach(b => totalHours += (b.end-b.start)/60));
+  weekStats.innerHTML = `<strong>${totalHours.toFixed(1)} h</strong> planifiées cette semaine`;
+}
+
+function renderBlock(col, weekday, b){
+  const subj = subjectById(b.subjectId) || { color:'#55707A', name:'Autre' };
+  const wrap = document.createElement('div');
+  wrap.className = 'block';
+  wrap.style.background = subj.color;
+  const top = (b.start-START_HOUR*60)*PX_PER_MIN;
+  const height = Math.max((b.end-b.start)*PX_PER_MIN, 24);
+  wrap.style.top = top+'px';
+  wrap.style.height = height+'px';
+  const baseLabel = b.label && b.label.trim() ? b.label : subj.name;
+  const label = (b.recurring ? '↻ ' : '') + baseLabel;
+  wrap.innerHTML = `<span class="b-title">${escapeHtml(label)}</span>` + (height>28 ? `<span class="b-time">${minToLabel(b.start)}-${minToLabel(b.end)}</span>` : '');
+  attachDrag(wrap, b);
+  wrap.addEventListener('click', () => {
+    if(wrap.dataset.justDragged==='1'){ wrap.dataset.justDragged='0'; return; }
+    openBlockModal(weekday, b);
+  });
+  col.appendChild(wrap);
+}
+
+function attachDrag(elBlock, b){
+  let startY=0, originalStart=0, duration=0, dragging=false, moved=false;
+  elBlock.addEventListener('pointerdown', e=>{
+    startY=e.clientY; originalStart=b.start; duration=b.end-b.start;
+    dragging=true; moved=false;
+    elBlock.setPointerCapture(e.pointerId);
+    elBlock.classList.add('dragging');
+  });
+  elBlock.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const dy = e.clientY-startY;
+    if(Math.abs(dy)>4) moved=true;
+    let deltaMin = Math.round((dy/PX_PER_MIN)/5)*5;
+    let newStart = originalStart+deltaMin;
+    const totalMin=(END_HOUR-START_HOUR)*60;
+    newStart = Math.max(START_HOUR*60, Math.min(newStart, START_HOUR*60+totalMin-duration));
+    b.start=newStart; b.end=newStart+duration;
+    elBlock.style.top = ((b.start-START_HOUR*60)*PX_PER_MIN)+'px';
+    const t = elBlock.querySelector('.b-time');
+    if(t) t.textContent = minToLabel(b.start)+'-'+minToLabel(b.end);
+  });
+  const end = ()=>{
+    if(!dragging) return;
+    dragging=false;
+    elBlock.classList.remove('dragging');
+    if(moved){ saveState(); renderWeek(); renderChart(); renderMonth(); }
+  };
+  elBlock.addEventListener('pointerup', end);
+  elBlock.addEventListener('pointercancel', end);
+}
+
+el('weekPrevBtn').onclick = ()=>{ currentWeekStart = addDays(currentWeekStart, -7); renderWeek(); renderChart(); };
+el('weekNextBtn').onclick = ()=>{ currentWeekStart = addDays(currentWeekStart, 7); renderWeek(); renderChart(); };
+el('weekTodayBtn').onclick = ()=>{ currentWeekStart = mondayOf(new Date()); renderWeek(); renderChart(); };
+
+/* ---------------- MODAL BLOC ---------------- */
+function openBlockModal(weekday, block){
+  el('fDay').innerHTML = DAYS.map((d,i)=>`<option value="${i}" ${i===weekday?'selected':''}>${d}</option>`).join('');
+  if(block){
+    editingBlockId = block.id;
+    editingOccurrenceDateISO = toISO(addDays(currentWeekStart, weekday));
+    el('blockModalTitle').textContent = 'Modifier le bloc';
+    el('fLabel').value = block.label || '';
+    el('fStart').value = minToLabel(block.start);
+    el('fEnd').value = minToLabel(block.end);
+    blockDraftSubjectId = block.subjectId;
+    blockDraftRecurring = !!block.recurring;
+    if(block.recurring){
+      el('blockDeleteBtn').style.display = 'none';
+      el('blockDeleteOccurrenceBtn').style.display = 'block';
+      el('blockDeleteSeriesBtn').style.display = 'block';
+    } else {
+      el('blockDeleteBtn').style.display = 'block';
+      el('blockDeleteOccurrenceBtn').style.display = 'none';
+      el('blockDeleteSeriesBtn').style.display = 'none';
+    }
+  } else {
+    editingBlockId = null;
+    editingOccurrenceDateISO = null;
+    el('blockModalTitle').textContent = 'Nouveau bloc';
+    el('fLabel').value = '';
+    el('fStart').value = '08:00';
+    el('fEnd').value = '09:30';
+    blockDraftSubjectId = state.subjects[0] ? state.subjects[0].id : null;
+    blockDraftRecurring = false;
+    el('blockDeleteBtn').style.display = 'none';
+    el('blockDeleteOccurrenceBtn').style.display = 'none';
+    el('blockDeleteSeriesBtn').style.display = 'none';
+  }
+  renderBlockSubjectChips();
+  renderRecurringChip();
+  el('blockOverlay').classList.add('open');
+}
+function renderBlockSubjectChips(){
+  const row = el('blockSubjectChips');
+  row.innerHTML = '';
+  state.subjects.forEach(s=>{
+    const chip = document.createElement('div');
+    chip.className = 'chip'+(s.id===blockDraftSubjectId?' selected':'');
+    chip.innerHTML = `<span class="swatch" style="background:${s.color}"></span>${escapeHtml(s.name)}`;
+    chip.onclick = ()=>{ blockDraftSubjectId = s.id; renderBlockSubjectChips(); };
+    row.appendChild(chip);
+  });
+}
+function renderRecurringChip(){
+  const chip = el('recurringChip');
+  chip.classList.toggle('selected', blockDraftRecurring);
+}
+el('recurringChip').onclick = ()=>{ blockDraftRecurring = !blockDraftRecurring; renderRecurringChip(); };
+
+el('addBtn').onclick = ()=> openBlockModal(0, null);
+el('blockCancelBtn').onclick = ()=> el('blockOverlay').classList.remove('open');
+el('blockOverlay').addEventListener('click', e=>{ if(e.target===el('blockOverlay')) el('blockOverlay').classList.remove('open'); });
+
+el('blockSaveBtn').onclick = ()=>{
+  const weekday = parseInt(el('fDay').value, 10);
+  let start = timeToMin(el('fStart').value);
+  let end = timeToMin(el('fEnd').value);
+  if(end<=start) end = start+30;
+  const label = el('fLabel').value.trim();
+
+  if(editingBlockId){
+    const b = state.blocks.find(x=>x.id===editingBlockId);
+    b.label = label; b.start = start; b.end = end; b.subjectId = blockDraftSubjectId; b.weekday = weekday;
+    if(blockDraftRecurring && !b.recurring){ b.recurring = true; b.exceptions = []; delete b.weekStart; }
+    else if(!blockDraftRecurring && b.recurring){ b.recurring = false; b.weekStart = toISO(currentWeekStart); b.exceptions = []; }
+  } else {
+    state.blocks.push({
+      id: uid('b'), label, start, end, subjectId: blockDraftSubjectId, weekday,
+      recurring: blockDraftRecurring,
+      exceptions: blockDraftRecurring ? [] : undefined,
+      weekStart: blockDraftRecurring ? undefined : toISO(currentWeekStart)
+    });
+  }
+  saveState(); renderWeek(); renderChart(); renderMonth();
+  el('blockOverlay').classList.remove('open');
+};
+el('blockDeleteBtn').onclick = ()=>{
+  if(!editingBlockId) return;
+  state.blocks = state.blocks.filter(x=>x.id!==editingBlockId);
+  saveState(); renderWeek(); renderChart(); renderMonth();
+  el('blockOverlay').classList.remove('open');
+};
+el('blockDeleteOccurrenceBtn').onclick = ()=>{
+  if(!editingBlockId || !editingOccurrenceDateISO) return;
+  const b = state.blocks.find(x=>x.id===editingBlockId);
+  b.exceptions = b.exceptions || [];
+  if(!b.exceptions.includes(editingOccurrenceDateISO)) b.exceptions.push(editingOccurrenceDateISO);
+  saveState(); renderWeek(); renderChart(); renderMonth();
+  el('blockOverlay').classList.remove('open');
+};
+el('blockDeleteSeriesBtn').onclick = ()=>{
+  if(!editingBlockId) return;
+  state.blocks = state.blocks.filter(x=>x.id!==editingBlockId);
+  saveState(); renderWeek(); renderChart(); renderMonth();
+  el('blockOverlay').classList.remove('open');
+};
+
+/* ---------------- MOIS ---------------- */
+function formatMonthLabel(date){
+  const s = date.toLocaleDateString('fr-FR', { month:'long', year:'numeric' });
+  return s.charAt(0).toUpperCase()+s.slice(1);
+}
+function renderMonth(){
+  el('monthLabel').textContent = formatMonthLabel(currentMonthDate);
+  const grid = el('monthGrid');
+  grid.innerHTML = '';
+  DAYS.forEach(d=>{
+    const h = document.createElement('div');
+    h.className = 'month-dayname';
+    h.textContent = d.slice(0,1);
+    grid.appendChild(h);
+  });
+  const first = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth(), 1);
+  const gridStart = mondayOf(first);
+  const todayISO = toISO(new Date());
+  for(let i=0;i<42;i++){
+    const date = addDays(gridStart, i);
+    const inMonth = date.getMonth()===currentMonthDate.getMonth();
+    const cell = document.createElement('div');
+    cell.className = 'month-cell' + (inMonth?'':' out') + (toISO(date)===todayISO?' today':'');
+    const dayBlocks = getBlocksForDate(date);
+    const colors = [...new Set(dayBlocks.map(b=>{ const s=subjectById(b.subjectId); return s?s.color:null; }).filter(Boolean))].slice(0,5);
+    cell.innerHTML = `<div class="mnum">${date.getDate()}</div><div class="month-dots">${colors.map(c=>`<span class="month-dot" style="background:${c}"></span>`).join('')}</div>`;
+    cell.onclick = ()=>{
+      currentWeekStart = mondayOf(date);
+      setActiveTab('week');
+    };
+    grid.appendChild(cell);
+  }
+}
+el('monthPrevBtn').onclick = ()=>{ currentMonthDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth()-1, 1); renderMonth(); };
+el('monthNextBtn').onclick = ()=>{ currentMonthDate = new Date(currentMonthDate.getFullYear(), currentMonthDate.getMonth()+1, 1); renderMonth(); };
+
+/* ---------------- GRAPHIQUE PAR MATIERE ---------------- */
+function computeSubjectHours(){
+  const totals = {};
+  state.subjects.forEach(s => totals[s.id] = 0);
+  const byDay = getBlocksForWeek(currentWeekStart);
+  byDay.forEach(list => list.forEach(b=>{
+    if(b.subjectId && totals[b.subjectId] !== undefined) totals[b.subjectId] += (b.end-b.start)/60;
+  }));
+  return totals;
+}
+function renderChart(){
+  const container = el('subjectChart');
+  if(state.subjects.length===0){ container.innerHTML = '<p class="chart-title">Répartition de tes heures cette semaine</p><p class="empty-note">Crée une matière pour voir apparaître le graphique.</p>'; return; }
+  const totals = computeSubjectHours();
+  const max = Math.max(1, ...Object.values(totals));
+  const sorted = [...state.subjects].sort((a,b)=> totals[b.id]-totals[a.id]);
+  container.innerHTML = '<p class="chart-title">Répartition de tes heures cette semaine</p>' + sorted.map(s=>{
+    const hrs = totals[s.id]||0;
+    const pct = hrs>0 ? Math.max(4, Math.round((hrs/max)*100)) : 0;
+    return `<div class="chart-row"><span class="chart-label">${escapeHtml(s.name)}</span><span class="chart-bar-track"><span class="chart-bar-fill" style="width:${pct}%; background:${s.color}"></span></span><span class="chart-value">${hrs.toFixed(1)}h</span></div>`;
+  }).join('');
+}
+
+/* ---------------- MATIERES ---------------- */
+function renderSubjects(){
+  subjectList.innerHTML = '';
+  state.subjects.forEach(s=>{
+    const courses = state.courses.filter(c=>c.subjectId===s.id);
+    const pct = courses.length ? Math.round(100*courses.reduce((sum,c)=> sum + (c.status==='maitrise'?1:c.status==='en_cours'?0.5:0), 0)/courses.length) : 0;
+
+    const card = document.createElement('div');
+    card.className = 'subject-card'+(openSubjectId===s.id?' open':'');
+
+    const top = document.createElement('div');
+    top.className = 'subject-top';
+    top.innerHTML = `<span class="subject-dot" style="background:${s.color}"></span>
+      <span class="subject-name">${escapeHtml(s.name)}</span>
+      <span class="subject-pct">${courses.length?pct+'%':'—'}</span>
+      <span class="chevron">▸</span>`;
+    top.onclick = ()=>{ openSubjectId = (openSubjectId===s.id ? null : s.id); renderSubjects(); };
+    card.appendChild(top);
+
+    const track = document.createElement('div');
+    track.className = 'progress-track';
+    track.innerHTML = `<div class="progress-fill" style="width:${pct}%; background:${s.color}"></div>`;
+    card.appendChild(track);
+
+    const body = document.createElement('div');
+    body.className = 'subject-body';
+
+    if(courses.length===0){
+      const empty = document.createElement('p');
+      empty.className = 'empty-note';
+      empty.textContent = "Aucun cours ajouté pour l'instant.";
+      body.appendChild(empty);
+    }
+    courses.forEach(c=>{
+      const row = document.createElement('div');
+      row.className = 'course-row';
+      row.innerHTML = `<span class="course-title">${escapeHtml(c.title)}</span>
+        <button class="status-pill" style="background:${STATUS_COLOR[c.status]}">${STATUS_LABEL[c.status]}</button>
+        <button class="course-del">×</button>`;
+      row.querySelector('.status-pill').onclick = ()=>{
+        const idx = STATUS_ORDER.indexOf(c.status);
+        c.status = STATUS_ORDER[(idx+1)%STATUS_ORDER.length];
+        saveState(); renderSubjects();
+      };
+      row.querySelector('.course-del').onclick = ()=>{
+        state.courses = state.courses.filter(x=>x.id!==c.id);
+        saveState(); renderSubjects();
+      };
+      body.appendChild(row);
+    });
+
+    const addRow = document.createElement('div');
+    addRow.className = 'add-course-row';
+    addRow.innerHTML = `<input type="text" placeholder="Nouveau cours (ex : Le potentiel d'action)"><button>Ajouter</button>`;
+    const input = addRow.querySelector('input');
+    const addCourse = ()=>{
+      const title = input.value.trim();
+      if(!title) return;
+      state.courses.push({ id: uid('c'), subjectId: s.id, title, status:'a_revoir' });
+      input.value='';
+      saveState(); renderSubjects();
+    };
+    addRow.querySelector('button').onclick = addCourse;
+    input.addEventListener('keydown', e=>{ if(e.key==='Enter') addCourse(); });
+    body.appendChild(addRow);
+
+    const actions = document.createElement('div');
+    actions.className = 'subject-actions';
+    actions.innerHTML = `<button class="rename-btn">Modifier</button><button class="del-subject-btn">Supprimer la matière</button>`;
+    actions.querySelector('.rename-btn').onclick = ()=> openSubjectModal(s);
+    let confirmingDelete = false;
+    const delBtn = actions.querySelector('.del-subject-btn');
+    delBtn.onclick = ()=>{
+      if(!confirmingDelete){
+        confirmingDelete = true;
+        delBtn.textContent = 'Confirmer la suppression ?';
+        setTimeout(()=>{ confirmingDelete=false; delBtn.textContent='Supprimer la matière'; }, 3000);
+        return;
+      }
+      state.subjects = state.subjects.filter(x=>x.id!==s.id);
+      state.courses = state.courses.filter(x=>x.subjectId!==s.id);
+      state.blocks.forEach(b=>{ if(b.subjectId===s.id) b.subjectId = null; });
+      saveState(); renderAll();
+    };
+    body.appendChild(actions);
+
+    card.appendChild(body);
+    subjectList.appendChild(card);
+  });
+}
+
+function openSubjectModal(subject){
+  if(subject){
+    editingSubjectId = subject.id;
+    subjectDraftColor = subject.color;
+    el('subjModalTitle').textContent = 'Modifier la matière';
+    el('sName').value = subject.name;
+    el('subjDeleteBtn').style.display = 'block';
+  } else {
+    editingSubjectId = null;
+    subjectDraftColor = COLOR_PALETTE[state.subjects.length % COLOR_PALETTE.length];
+    el('subjModalTitle').textContent = 'Nouvelle matière';
+    el('sName').value = '';
+    el('subjDeleteBtn').style.display = 'none';
+  }
+  renderColorSwatches();
+  el('subjOverlay').classList.add('open');
+}
+function renderColorSwatches(){
+  const row = el('colorSwatches');
+  row.innerHTML = '';
+  COLOR_PALETTE.forEach(c=>{
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch'+(c===subjectDraftColor?' selected':'');
+    sw.style.background = c;
+    sw.onclick = ()=>{ subjectDraftColor = c; renderColorSwatches(); };
+    row.appendChild(sw);
+  });
+}
+el('addSubjectBtn').onclick = ()=> openSubjectModal(null);
+el('subjCancelBtn').onclick = ()=> el('subjOverlay').classList.remove('open');
+el('subjOverlay').addEventListener('click', e=>{ if(e.target===el('subjOverlay')) el('subjOverlay').classList.remove('open'); });
+el('subjSaveBtn').onclick = ()=>{
+  const name = el('sName').value.trim();
+  if(!name) return;
+  if(editingSubjectId){
+    const s = subjectById(editingSubjectId);
+    s.name = name; s.color = subjectDraftColor;
+  } else {
+    state.subjects.push({ id: uid('s'), name, color: subjectDraftColor });
+  }
+  saveState(); renderAll();
+  el('subjOverlay').classList.remove('open');
+};
+el('subjDeleteBtn').onclick = ()=>{
+  if(!editingSubjectId) return;
+  state.subjects = state.subjects.filter(x=>x.id!==editingSubjectId);
+  state.courses = state.courses.filter(x=>x.subjectId!==editingSubjectId);
+  state.blocks.forEach(b=>{ if(b.subjectId===editingSubjectId) b.subjectId=null; });
+  saveState(); renderAll();
+  el('subjOverlay').classList.remove('open');
+};
+
+/* ---------------- TABS ---------------- */
+function setActiveTab(tab){
+  el('tabWeekBtn').classList.toggle('active', tab==='week');
+  el('tabMonthBtn').classList.toggle('active', tab==='month');
+  el('tabSubjBtn').classList.toggle('active', tab==='subjects');
+  el('weekView').style.display = tab==='week' ? 'block' : 'none';
+  el('monthView').style.display = tab==='month' ? 'block' : 'none';
+  el('subjView').style.display = tab==='subjects' ? 'block' : 'none';
+  if(tab==='week') renderWeek();
+  if(tab==='month') renderMonth();
+}
+el('tabWeekBtn').onclick = ()=> setActiveTab('week');
+el('tabMonthBtn').onclick = ()=> setActiveTab('month');
+el('tabSubjBtn').onclick = ()=> setActiveTab('subjects');
+
+loadState();
+</script>
+</body>
+</html>
